@@ -1,0 +1,70 @@
+<html>
+    <head>
+        <title>WEBCAM録画</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body>
+        <video id="video" autoplay></video>
+        <button id="ctrl">開始</button>
+        <button id="dl" style="display: none;">ダウンロード</button>
+        <script>
+            let m;
+            let isRecording = false;
+            if (navigator.mediaDevices.getUserMedia) {
+                const constraints = { audio: true, video: true };
+                let chunks = [];
+                navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
+                    const options = {
+                    audioBitsPerSecond: 128000,
+                    videoBitsPerSecond: 2500000,
+                    mimeType: "video/webm",
+                    };
+                    const mediaRecorder = new MediaRecorder(stream, options);
+                    m = mediaRecorder;
+                    const video = document.querySelector("video");
+                    video.srcObject = stream;
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data && event.data.size > 0) {
+                            chunks.push(event.data);
+                            console.log("create");
+                        }
+                    }
+                }).catch((error)=>{
+                    console.error(error);
+                    alert("非対応です。");
+                })
+                const ctrl = document.querySelector("#ctrl");
+                const dl = document.querySelector("#dl");
+                ctrl.addEventListener("click", (e)=>{
+                    if(isRecording){
+                        m.stop();
+                        isRecording = false;
+                        ctrl.innerHTML = "開始"
+                        dl.style = "display:inline";
+                        return;
+                    }
+                    chunks = [];
+                    m.start();
+                    isRecording = true
+                    ctrl.innerHTML = "停止";
+                    dl.style = "display:none";
+                });
+                dl.addEventListener("click", (e)=>{
+                    const buffer = new Blob(chunks, { type: "video/webm" });
+                    const url = window.URL.createObjectURL(buffer);
+                    const a = document.createElement("a");
+                    a.style.display = "none";
+                    a.href = url;
+                    a.download = "rec.webm";
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    }, 100);
+                });
+            }
+        </script>
+    </body>
+</html>
